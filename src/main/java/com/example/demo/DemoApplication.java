@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
@@ -28,16 +29,17 @@ public class DemoApplication {
 	}
 
 	@RequestMapping(value = "downloadFile", method = RequestMethod.GET)
-	public ResponseEntity<InputStreamResource> getSteamingFile(HttpServletResponse response) throws IOException {
-
-
-		HttpHeaders headers = new HttpHeaders();
-		headers.add("Content-Disposition", "attachment; filename=customers.xlsx");
-
-		return ResponseEntity
-				.ok()
-				.headers(headers)
-				.body(new InputStreamResource(customersToExcel(Arrays.asList(new Customer(10,"ranga",30,"knl")))));
+	public StreamingResponseBody getSteamingFile(HttpServletResponse response) throws IOException {
+        response.setHeader("Content-Disposition", "attachment; filename=customers.xlsx");
+		InputStream inputStream = customersToExcel(Arrays.asList(new Customer(10,"ranga",30,"knl")));
+		return outputStream -> {
+			int nRead;
+			byte[] data = new byte[1024];
+			while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+				System.out.println("Writing some bytes..");
+				outputStream.write(data, 0, nRead);
+			}
+		};
 	}
 
 	public static ByteArrayInputStream customersToExcel(List<Customer> customers) throws IOException {
